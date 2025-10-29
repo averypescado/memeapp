@@ -2,7 +2,6 @@
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
 
 // State
 let currentUser = null;
@@ -227,15 +226,7 @@ async function deleteMeme(memeId) {
     const meme = allMemes.find(m => m.id === memeId);
     if (!meme) return;
 
-    // Delete from Storage
-    try {
-      const imageRef = storage.refFromURL(meme.imageUrl);
-      await imageRef.delete();
-    } catch (error) {
-      console.error('Error deleting image from storage:', error);
-    }
-
-    // Delete from Firestore
+    // Delete from Firestore (images are stored as data URLs in Firestore)
     await db
       .collection('users')
       .doc(currentUser.uid)
