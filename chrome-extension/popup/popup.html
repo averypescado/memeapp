@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meme App</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Loading State -->
+  <div id="loadingState" class="state">
+    <div class="loader"></div>
+    <p>Loading...</p>
+  </div>
+
+  <!-- Not Logged In State -->
+  <div id="notLoggedInState" class="state hidden">
+    <div class="empty-state">
+      <h2>Welcome to Meme App!</h2>
+      <p>Save and sync your favorite memes across all your devices.</p>
+      <button id="loginButton" class="primary-button">Login / Sign Up</button>
+    </div>
+  </div>
+
+  <!-- Logged In State -->
+  <div id="loggedInState" class="state hidden">
+    <!-- Header -->
+    <div class="header">
+      <h1>My Memes</h1>
+      <div class="header-actions">
+        <button id="refreshButton" class="icon-button" title="Refresh">
+          <span class="icon">↻</span>
+        </button>
+        <button id="logoutButton" class="icon-button" title="Logout">
+          <span class="icon">⊗</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="Search memes..." class="search-input">
+      <div class="filter-buttons">
+        <button class="filter-button active" data-filter="all">All</button>
+        <button class="filter-button" data-filter="favorites">Favorites</button>
+      </div>
+    </div>
+
+    <!-- User Info -->
+    <div class="user-info">
+      <span id="userEmail"></span>
+      <span id="memeCount" class="count-badge">0 memes</span>
+    </div>
+
+    <!-- Memes Grid -->
+    <div id="memesContainer" class="memes-grid">
+      <!-- Memes will be inserted here -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state hidden">
+      <p>No memes saved yet!</p>
+      <p class="hint">Right-click any image on the web and select "Save to Meme App"</p>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="../config/firebase-config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
