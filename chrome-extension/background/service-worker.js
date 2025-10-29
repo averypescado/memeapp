@@ -44,19 +44,27 @@ async function handleSaveImage(imageUrl, sourceUrl) {
     const response = await fetch(imageUrl);
     const blob = await response.blob();
 
-    // Convert blob to data URL
-    const dataUrl = await blobToDataURL(blob);
+    // Compress image to fit within Firestore's 1MB document limit
+    // We store only one optimized version (no separate thumbnail)
+    const compressedDataUrl = await compressImage(blob);
 
-    // Create a thumbnail (smaller version for faster loading)
-    const thumbnailDataUrl = await createThumbnail(blob);
+    // Validate size (Firestore has ~1MB document limit, leave room for metadata)
+    const sizeInBytes = compressedDataUrl.length;
+    const sizeInKB = Math.round(sizeInBytes / 1024);
+
+    if (sizeInBytes > 900000) { // 900KB limit to be safe
+      throw new Error(`Image too large (${sizeInKB}KB). Please try a smaller image.`);
+    }
+
+    console.log(`Compressed image size: ${sizeInKB}KB`);
 
     // Generate unique ID for this meme
     const memeId = generateId();
 
-    // Save directly to Firestore as data URLs
+    // Save directly to Firestore as data URL
     await db.collection('users').doc(user.uid).collection('memes').doc(memeId).set({
-      imageUrl: dataUrl,
-      thumbnailUrl: thumbnailDataUrl,
+      imageUrl: compressedDataUrl,
+      thumbnailUrl: compressedDataUrl, // Use same image for thumbnail
       sourceUrl: sourceUrl || '',
       tags: [],
       favorite: false,
@@ -70,7 +78,7 @@ async function handleSaveImage(imageUrl, sourceUrl) {
         type: 'basic',
         iconUrl: 'assets/icons/icon48.png',
         title: 'Meme Saved!',
-        message: 'Your meme has been saved and synced.'
+        message: `Your meme has been saved (${sizeInKB}KB)`
       });
     } catch (notifError) {
       console.log('Notification error (non-critical):', notifError);
@@ -83,8 +91,8 @@ async function handleSaveImage(imageUrl, sourceUrl) {
       await chrome.notifications.create({
         type: 'basic',
         iconUrl: 'assets/icons/icon48.png',
-        title: 'Error',
-        message: 'Failed to save meme: ' + error.message
+        title: 'Error Saving Meme',
+        message: error.message || 'Failed to save meme'
       });
     } catch (notifError) {
       console.log('Notification error:', notifError);
@@ -102,26 +110,27 @@ function blobToDataURL(blob) {
   });
 }
 
-// Create thumbnail from blob using service worker-compatible APIs
-async function createThumbnail(blob) {
+// Compress image to fit within Firestore's 1MB document size limit
+async function compressImage(blob, maxSizeKB = 800) {
   try {
     // Use createImageBitmap which works in service workers
     const imageBitmap = await createImageBitmap(blob);
 
-    // Calculate dimensions to fit within 200x200 while maintaining aspect ratio
+    // Calculate dimensions to fit within 800x800 while maintaining aspect ratio
+    // This is large enough for viewing memes but small enough to compress well
     let width = imageBitmap.width;
     let height = imageBitmap.height;
-    const maxSize = 200;
+    const maxDimension = 800;
 
     if (width > height) {
-      if (width > maxSize) {
-        height = (height * maxSize) / width;
-        width = maxSize;
+      if (width > maxDimension) {
+        height = (height * maxDimension) / width;
+        width = maxDimension;
       }
     } else {
-      if (height > maxSize) {
-        width = (width * maxSize) / height;
-        height = maxSize;
+      if (height > maxDimension) {
+        width = (width * maxDimension) / height;
+        height = maxDimension;
       }
     }
 
@@ -130,17 +139,49 @@ async function createThumbnail(blob) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(imageBitmap, 0, 0, width, height);
 
-    // Convert to blob then to data URL
-    const thumbnailBlob = await canvas.convertToBlob({
-      type: 'image/jpeg',
-      quality: 0.7
-    });
+    // Try different quality levels until we get under the size limit
+    let quality = 0.8;
+    let compressedDataUrl = null;
+    let attempts = 0;
+    const maxAttempts = 5;
 
-    return await blobToDataURL(thumbnailBlob);
+    while (attempts < maxAttempts) {
+      // Convert to blob with current quality
+      const compressedBlob = await canvas.convertToBlob({
+        type: 'image/jpeg',
+        quality: quality
+      });
+
+      compressedDataUrl = await blobToDataURL(compressedBlob);
+      const sizeKB = compressedDataUrl.length / 1024;
+
+      console.log(`Compression attempt ${attempts + 1}: ${Math.round(sizeKB)}KB at quality ${quality}`);
+
+      if (sizeKB <= maxSizeKB) {
+        // Success! Image is small enough
+        return compressedDataUrl;
+      }
+
+      // Reduce quality for next attempt
+      quality -= 0.15;
+      attempts++;
+
+      if (quality < 0.3) {
+        // Don't go below 0.3 quality, instead reduce dimensions further
+        quality = 0.5;
+        width = Math.floor(width * 0.8);
+        height = Math.floor(height * 0.8);
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(imageBitmap, 0, 0, width, height);
+      }
+    }
+
+    // If we still haven't succeeded, return what we have
+    return compressedDataUrl;
   } catch (error) {
-    console.error('Error creating thumbnail:', error);
-    // Fallback: return original blob as data URL
-    return await blobToDataURL(blob);
+    console.error('Error compressing image:', error);
+    throw new Error('Failed to compress image');
   }
 }
 
