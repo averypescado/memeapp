@@ -1,10 +1,10 @@
 // Background Service Worker for Meme App
 // Handles context menu, image saving, and Firebase sync
 
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js');
+importScripts('../libs/firebase-app-compat.js');
+importScripts('../libs/firebase-auth-compat.js');
+importScripts('../libs/firebase-firestore-compat.js');
+importScripts('../libs/firebase-storage-compat.js');
 importScripts('../config/firebase-config.js');
 
 // Initialize Firebase
