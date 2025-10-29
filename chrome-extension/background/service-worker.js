@@ -65,22 +65,30 @@ async function handleSaveImage(imageUrl, sourceUrl) {
     });
 
     // Show success notification
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: '../assets/icons/icon48.png',
-      title: 'Meme Saved!',
-      message: 'Your meme has been saved and synced.'
-    });
+    try {
+      await chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'assets/icons/icon48.png',
+        title: 'Meme Saved!',
+        message: 'Your meme has been saved and synced.'
+      });
+    } catch (notifError) {
+      console.log('Notification error (non-critical):', notifError);
+    }
 
     console.log('Meme saved successfully:', memeId);
   } catch (error) {
     console.error('Error saving meme:', error);
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: '../assets/icons/icon48.png',
-      title: 'Error',
-      message: 'Failed to save meme: ' + error.message
-    });
+    try {
+      await chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'assets/icons/icon48.png',
+        title: 'Error',
+        message: 'Failed to save meme: ' + error.message
+      });
+    } catch (notifError) {
+      console.log('Notification error:', notifError);
+    }
   }
 }
 
@@ -94,44 +102,46 @@ function blobToDataURL(blob) {
   });
 }
 
-// Create thumbnail from blob
+// Create thumbnail from blob using service worker-compatible APIs
 async function createThumbnail(blob) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const canvas = new OffscreenCanvas(200, 200);
-    const ctx = canvas.getContext('2d');
+  try {
+    // Use createImageBitmap which works in service workers
+    const imageBitmap = await createImageBitmap(blob);
 
-    img.onload = () => {
-      // Calculate dimensions to fit within 200x200 while maintaining aspect ratio
-      let width = img.width;
-      let height = img.height;
-      const maxSize = 200;
+    // Calculate dimensions to fit within 200x200 while maintaining aspect ratio
+    let width = imageBitmap.width;
+    let height = imageBitmap.height;
+    const maxSize = 200;
 
-      if (width > height) {
-        if (width > maxSize) {
-          height = (height * maxSize) / width;
-          width = maxSize;
-        }
-      } else {
-        if (height > maxSize) {
-          width = (width * maxSize) / height;
-          height = maxSize;
-        }
+    if (width > height) {
+      if (width > maxSize) {
+        height = (height * maxSize) / width;
+        width = maxSize;
       }
+    } else {
+      if (height > maxSize) {
+        width = (width * maxSize) / height;
+        height = maxSize;
+      }
+    }
 
-      canvas.width = width;
-      canvas.height = height;
-      ctx.drawImage(img, 0, 0, width, height);
+    // Create canvas and draw resized image
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(imageBitmap, 0, 0, width, height);
 
-      canvas.convertToBlob({ type: 'image/jpeg', quality: 0.7 })
-        .then(thumbnailBlob => blobToDataURL(thumbnailBlob))
-        .then(resolve)
-        .catch(reject);
-    };
+    // Convert to blob then to data URL
+    const thumbnailBlob = await canvas.convertToBlob({
+      type: 'image/jpeg',
+      quality: 0.7
+    });
 
-    img.onerror = reject;
-    img.src = URL.createObjectURL(blob);
-  });
+    return await blobToDataURL(thumbnailBlob);
+  } catch (error) {
+    console.error('Error creating thumbnail:', error);
+    // Fallback: return original blob as data URL
+    return await blobToDataURL(blob);
+  }
 }
 
 // Generate unique ID
