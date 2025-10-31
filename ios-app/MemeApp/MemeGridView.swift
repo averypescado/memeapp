@@ -190,6 +190,7 @@ struct MemeCell: View {
 
     @State private var image: UIImage?
     @State private var showDeleteConfirmation = false
+    @State private var showShareSheet = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -226,10 +227,21 @@ struct MemeCell: View {
             .padding(4)
         }
         .contextMenu {
+            Button(action: {
+                showShareSheet = true
+            }) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+
             Button(role: .destructive, action: {
                 showDeleteConfirmation = true
             }) {
                 Label("Delete", systemImage: "trash")
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let image = image {
+                ShareSheet(items: [image])
             }
         }
         .confirmationDialog("Delete this meme?", isPresented: $showDeleteConfirmation) {
@@ -256,6 +268,21 @@ struct MemeCell: View {
             image = decodedImage
             ImageCache.shared.saveImage(decodedImage, forKey: meme.id)
         }
+    }
+}
+
+// MARK: - ShareSheet (Native iOS Share)
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+        // No update needed
     }
 }
 
