@@ -8,7 +8,7 @@ import Foundation
 struct AppGroup {
     // IMPORTANT: Change this to match your App Group ID
     // Format: group.com.yourname.MemeApp
-    static let identifier = "group.com.yourname.MemeApp"
+    static let identifier = "group.com.avery.MemeApp"
 
     // Shared UserDefaults for passing data between app and keyboard
     static var shared: UserDefaults {

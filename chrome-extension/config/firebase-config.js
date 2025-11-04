@@ -3,12 +3,13 @@
 // Get this from: Firebase Console > Project Settings > Your apps > Web app
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAYyuB8l6lEr7ZEGIoDCSA_tmpbzbhVhQY",
+  authDomain: "memeapp-b0826.firebaseapp.com",
+  projectId: "memeapp-b0826",
+  storageBucket: "memeapp-b0826.firebasestorage.app",
+  messagingSenderId: "1083647272139",
+  appId: "1:1083647272139:web:1bfacee405de0729aea74e",
+  measurementId: "G-LM3ZYXRN91"
 };
 
 // Export for use in other files

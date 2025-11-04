@@ -33,7 +33,10 @@ class KeyboardViewController: UIInputViewController {
     }
 
     private func loadMemes() {
-        memes = FirebaseService.loadCachedMemes()
+        if let data = AppGroup.shared.data(forKey: AppGroup.Keys.cachedMemes),
+           let cachedMemes = try? JSONDecoder().decode([Meme].self, from: data) {
+            memes = cachedMemes
+        }
         print("Loaded \(memes.count) cached memes in keyboard")
     }
 
